@@ -34,6 +34,7 @@ public:
 
     void shootBox();
     void createStack();
+    void createTriangle();
 
 protected:
 	void resizeEvent(QResizeEvent* evt);

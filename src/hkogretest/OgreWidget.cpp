@@ -69,6 +69,13 @@ void OgreWidget::shootBox()
     desc.m_linearVelocity = m_pCamera->getDirection() * 50;
 
     HkOgre::World::getWorld()->createRigidBody(sphereShape, desc);
+    /*
+    HkOgre::CapsuleShapeDescription capShape(Ogre::Vector3(0, -2.5f, 0), 
+        Ogre::Vector3(0, 2.5f, 0), 2.5f);
+    desc.m_strName = "capsule" + Ogre::StringConverter::toString(nCount++);
+    desc.m_linearVelocity =0;
+    HkOgre::World::getWorld()->createRigidBody(capShape, desc);
+    */
 }
 
 void OgreWidget::createStack()
@@ -88,6 +95,24 @@ void OgreWidget::createStack()
             HkOgre::World::getWorld()->createRigidBody(boxShape, desc);
         }
     }
+}
+
+void OgreWidget::createTriangle()
+{
+    static int nCount = 0;
+
+    Ogre::Vector3 v0(20.0f, 20.0f, 0);
+    Ogre::Vector3 v1(0, 20.0f, 0);
+    Ogre::Vector3 v2(20.0f, 0, 0);
+
+    HkOgre::RigidBodyDescription desc;
+    HkOgre::TriangleShapeDescription shape(v0, v1, v2);
+    desc.m_nMotionType = HkOgre::RigidBodyDescription::MOTION_FIXED;
+
+    desc.m_vecPos = Ogre::Vector3(30, 30, 0);
+    desc.m_rotation = Ogre::Quaternion(Ogre::Radian(Ogre::Degree(50)), Ogre::Vector3::UNIT_Y);
+    desc.m_strName = "triangle" +Ogre::StringConverter::toString(nCount++);
+    HkOgre::World::getWorld()->createRigidBody(shape, desc);
 }
 
 void OgreWidget::resizeEvent(QResizeEvent* evt)
@@ -138,6 +163,8 @@ void OgreWidget::keyPressEvent(QKeyEvent* evt)
         shootBox();
     }else if(evt->key() == Qt::Key_S) {
         createStack();
+    }else if(evt->key() == Qt::Key_T) {
+        createTriangle();
     }
     /*else if(evt->key() == Qt::Key_W) {
         Ogre::Vector3 move(0.0, 2.0, 0.0);
