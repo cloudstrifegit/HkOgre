@@ -200,6 +200,8 @@ void World::uninitialize()
 bool World::createHavokWorld()
 {
     hkpWorldCinfo worldInfo;
+    worldInfo.setBroadPhaseWorldSize(10000);
+    worldInfo.m_collisionTolerance = 0.03f;
     worldInfo.m_simulationType = hkpWorldCinfo::SIMULATION_TYPE_MULTITHREADED;
     worldInfo.m_broadPhaseBorderBehaviour = hkpWorldCinfo::BROADPHASE_BORDER_REMOVE_ENTITY;
     m_hkWorld = new hkpWorld(worldInfo);

@@ -18,5 +18,7 @@ class hkVector4f;
 class hkQuaternionf;
 class hkpRigidBodyCinfo;
 struct hkMassProperties;
+class hkpShape;
+class hkpSampledHeightFieldShape;
 
 #endif

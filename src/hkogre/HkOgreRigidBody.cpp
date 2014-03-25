@@ -34,7 +34,7 @@ void RigidBody::advance(float fTime)
 void RigidBody::createRigidBody(const ShapeDescription& shape,
         const RigidBodyDescription& desc)
 {
-    hkpConvexShape* pShape = shape.createShape();
+    hkpShape* pShape = shape.createShape();
     hkpRigidBodyCinfo ci;
     desc.to_hkCinfo(&ci);
 

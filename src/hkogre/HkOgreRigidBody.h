@@ -23,6 +23,9 @@ public:
     void createRigidBody(const ShapeDescription& shape,
         const RigidBodyDescription& desc);
 
+    Ogre::SceneNode* getSceneNode() { return m_pNode; }
+    Ogre::Entity* getEntity() { return m_pEntity; }
+
 private:
     hkpRigidBody* m_rb;
 
