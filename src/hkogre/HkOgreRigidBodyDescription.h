@@ -28,6 +28,7 @@ public:
 public:
     Ogre::String m_strName;
     Ogre::String m_strEntity;
+    Ogre::String m_strMaterial;
     Ogre::Vector3 m_vecPos;
     Ogre::Quaternion m_rotation;
     Ogre::Vector3 m_linearVelocity;
@@ -37,6 +38,7 @@ public:
     Ogre::Real m_restitution;
     Ogre::ulong m_collisionFilterInfo;
     MONTION_TYPE_ENUM m_nMotionType;
+    bool m_bCreateDebugObject;
 };
 
 }//namespace HkOgre

@@ -5,6 +5,7 @@
 #include "HkOgreHavokPrototypes.h"
 #include <Ogre.h>
 #include <OgreTerrain.h>
+#include <OgreTerrainGroup.h>
 
 namespace HkOgre
 {
@@ -96,6 +97,20 @@ public:
 
 private:
     Ogre::Terrain* m_pTerrain;
+};
+
+class HkOgrePublicClass BvTreeShapeDescription : public ShapeDescription
+{
+public:
+    BvTreeShapeDescription(Ogre::TerrainGroup* terrainGroup);
+    ~BvTreeShapeDescription();
+
+    virtual hkpShape* createShape() const;
+    virtual Ogre::ManualObject* createDebugEntity(const Ogre::String& strName) const;
+    virtual hkMassProperties calcMassProperties(float fMass) const;
+
+private:
+    Ogre::TerrainGroup* m_terrainGroup;
 };
 
 }//namespace HkOgre

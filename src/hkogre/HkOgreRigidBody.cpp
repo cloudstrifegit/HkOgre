@@ -7,6 +7,7 @@
 #include "HkOgreShapeDescription.h"
 #include "HkOgreRigidBodyDescription.h"
 #include "HkOgreUtil.h"
+#include <XkDebugStr.h>
 
 namespace HkOgre
 {
@@ -19,7 +20,7 @@ RigidBody::RigidBody(World* world) :
 
 RigidBody::~RigidBody()
 {
-
+    
 }
 
 void RigidBody::advance(float fTime)
@@ -70,11 +71,38 @@ void RigidBody::createRigidBody(const ShapeDescription& shape,
     if(m_pEntity)
         m_pNode->attachObject(m_pEntity);
 
+    if(!desc.m_strMaterial.empty()) {
+        m_pEntity->setMaterialName(desc.m_strMaterial);
+    }
+
 #if HKOGRE_DEBUG_RIGIDBODY == 1
-    m_pDebugEntity = shape.createDebugEntity(desc.m_strName + "debug");
-    if(m_pDebugEntity)
-        m_pNode->attachObject(m_pDebugEntity);
+    if(desc.m_bCreateDebugObject) {
+        m_pDebugEntity = shape.createDebugEntity(desc.m_strName + "debug");
+        if(m_pDebugEntity) {
+            m_pNode->attachObject(m_pDebugEntity);
+        }
+    }
 #endif
+}
+
+void RigidBody::setPosition(const Ogre::Vector3& vecPos)
+{
+    hkpWorld* pWorld = m_world->gethkpWorld();
+    pWorld->markForWrite();
+    hkVector4 pos = tohkVector4(vecPos);
+    m_rb->setPosition(pos);
+    pWorld->unmarkForWrite();
+}
+
+void RigidBody::setRotation(const Ogre::Quaternion& quat)
+{
+    hkpWorld* pWorld = m_world->gethkpWorld();
+    hkQuaternion qOrig = m_rb->getRotation();
+    pWorld->markForWrite();
+    hkQuaternion q = tohkQuaternion(quat);
+    qOrig.mul(q);
+    m_rb->setRotation(qOrig);
+    pWorld->unmarkForWrite();
 }
 
 }//namespace HkOgre

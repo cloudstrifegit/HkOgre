@@ -76,7 +76,8 @@ bool Graphic::setupRenderSystem()
 
 bool Graphic::setupSceneManager()
 {
-    m_pSceneMgr = m_pRoot->createSceneManager(Ogre::ST_GENERIC);
+    m_pSceneMgr = m_pRoot->createSceneManager(Ogre::ST_EXTERIOR_CLOSE);
+    XkDebugString("m_pSceneMgr: 0x%X", m_pSceneMgr);
 	Ogre::ResourceGroupManager::getSingleton().initialiseAllResourceGroups();
 
 	return true;

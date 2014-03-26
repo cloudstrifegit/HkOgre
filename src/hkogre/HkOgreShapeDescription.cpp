@@ -9,6 +9,10 @@
 #include <Physics2012/Collide/Shape/HeightField/SampledHeightField/hkpSampledHeightFieldShape.h>
 #include <Physics2012/Collide/Shape/HeightField/SampledHeightField/hkpSampledHeightFieldBaseCinfo.h>
 #include <Common/Base/Types/Geometry/Aabb/hkAabb.h>
+#include <Physics2012/Collide/Shape/Compound/Collection/SimpleMesh/hkpSimpleMeshShape.h>
+#include <Physics2012/Collide/Shape/Compound/Tree/hkpBvTreeShape.h>
+#include <Physics2012/Collide/Shape/Compound/Tree/Mopp/hkpMoppBvTreeShape.h>
+#include <Physics2012/Collide/Shape/Compound/Tree/Mopp/hkpMoppUtility.h>
 #include <XkDebugStr.h>
 #include "HkOgreUtil.h"
 
@@ -29,8 +33,16 @@ public:
     {
 			// Lookup data and return a float
 			// We scale the data artificially by 5 to make it look interesting
-        hkReal fRet =  mTerrain->getHeightAtPoint(x, z);
+        //hkReal fRet =  mTerrain->getHeightAtPoint(x, z);
         //XkDebugString("fRet: %f (%d, %d)", fRet, x, z);
+        //return fRet;
+
+        //hkReal fScale = mTerrain->getWorldSize()/ 513.0f;
+        Ogre::Real fX = (float)x / mTerrain->getWorldSize();
+        Ogre::Real fY = (float)z / mTerrain->getWorldSize();
+
+        hkReal fRet = mTerrain->getHeightAtTerrainPosition(fY, fX);
+        //XkDebugString("fScale: %f, (fX, fY) = (%f, %f) fHeight: %f", fScale, fX, fY, fRet);
         return fRet;
     }
 
@@ -253,18 +265,12 @@ hkpShape* SampledHeightFieldShapeDescription::createShape() const
 
 Ogre::ManualObject* SampledHeightFieldShapeDescription::createDebugEntity(const Ogre::String& strName) const
 {
+    /*
     Ogre::SceneManager* pSceneMgr = ::Ogre::Root::getSingletonPtr()->getSceneManagerIterator().getNext();
     Ogre::ManualObject* pObj = pSceneMgr->createManualObject(strName);
 	pObj->clear();
     pObj->begin("BaseWhite", Ogre::RenderOperation::OT_TRIANGLE_LIST);
-    /*
-    for(int i=0; i<m_pTerrain->getSize(); i++){
-        for(int j=0; j<m_pTerrain->getSize(); j++) {
-            Ogre::Real fHeight = m_pTerrain->getHeightAtPoint(i, j);
-            pObj->position(i, fHeight, j);
-        }
-    }
-    */
+  
     MySampledHeightFieldShape* heightFieldShape = g_heightFieldShape;
 
     hkVector4 scale = heightFieldShape->m_intToFloatScale;
@@ -294,9 +300,217 @@ Ogre::ManualObject* SampledHeightFieldShapeDescription::createDebugEntity(const 
 
     pObj->end();
     return pObj;
+    */
+    return 0;
 }
 
 hkMassProperties SampledHeightFieldShapeDescription::calcMassProperties(float fMass) const
+{
+    hkMassProperties massProp;
+    return massProp;
+}
+
+BvTreeShapeDescription::BvTreeShapeDescription(Ogre::TerrainGroup* terrainGroup) :
+    m_terrainGroup(terrainGroup)
+{
+
+}
+
+BvTreeShapeDescription::~BvTreeShapeDescription()
+{
+
+}
+
+hkpShape* BvTreeShapeDescription::createShape() const
+{
+    // TODO We are only creating a navmesh from terrain at the moment
+	// TODO look at PW's loadhouses method for entities loading
+
+
+	// TODO check for no terrain
+	//    if (srcMeshes.empty())
+	//        return;
+
+	// PARTS OF THE FOLLOWING CODE WERE TAKEN AND MODIFIED FROM AN OGRE3D FORUM POST
+	//const int numNodes = srcMeshes.size();
+	// TODO how to retrieve number of pages in terrain group? Hardcoded at the moment.
+	int pagesTotal = 1;
+	const int totalMeshes = pagesTotal /*+ numNodes*/;
+
+	size_t nverts = 0;
+	size_t ntris = 0;
+	size_t *meshVertexCount = new size_t[totalMeshes];
+	size_t *meshIndexCount = new size_t[totalMeshes];
+	Ogre::Vector3 **meshVertices = new Ogre::Vector3*[totalMeshes];
+	unsigned long **meshIndices = new unsigned long*[totalMeshes];
+
+	// Calculate terrain bounds
+	// TODO extract calculateTerrainExtents() ?
+	Ogre::TerrainGroup::TerrainIterator ti = m_terrainGroup->getTerrainIterator();
+	Ogre::Terrain* trn;
+	// TODO we could calculate terrain count here
+	size_t trnCount = 0;
+
+	//---------------------------------------------------------------------------------
+	// TERRAIN DATA BUILDING
+	ti = m_terrainGroup->getTerrainIterator();
+	trnCount = 0;
+	while(ti.hasMoreElements())
+	{
+		trn = ti.getNext()->instance;
+		// TODO do we want to set a query mask here? or does default suffice?
+		//         trn->setQueryFlags(GEOMETRY_QUERY_MASK);
+
+		// get height data, world size, map size
+		float *mapptr = trn->getHeightData();
+		float WorldSize = trn->getWorldSize();
+		int MapSize = trn->getSize();
+		// calculate where we need to move/place our vertices
+		float DeltaPos = (WorldSize / 2.0f);
+
+		float DeltaX = 0;
+		float DeltaZ = 0;
+		// TODO this hardcoded behaviour has to go! Supports only up to 4 terrain pages
+		switch(trnCount)
+		{
+		case 0:
+			DeltaX = -2000;
+			DeltaZ = 2000;
+			break;
+		case 1:
+			DeltaX = -2000;
+			DeltaZ = -2000;
+			break;
+		case 2:
+			DeltaX = 2000;
+			DeltaZ = 2000;
+			break;
+		case 3:
+			DeltaX = 2000;
+			DeltaZ = -2000;
+			break;
+		default:
+			DeltaX = 0;
+			DeltaZ = 0;
+		}
+
+		std::cout << "Terrain: " << trnCount << std::endl;
+
+		float Scale = WorldSize / (float)(MapSize - 1);
+
+		//////////////////////////////
+		// THIS CODE WAS TAKEN FROM
+		// AN OGRE FORUMS THREAD IN THE
+		// NEW TERRAIN SCREENSHOTS THREAD
+		// IN THE SHOWCASE FORUMS - I ONLY MODIFIED IT
+		// TO BE ABLE TO WORK FOR RECAST AND IN THE CONTEXT OF
+		// THIS DEMO APPLICATION
+
+		// build vertices
+		meshVertices[trnCount] = new Ogre::Vector3[(MapSize*MapSize)];
+
+		int i = 0;
+		int u = 0;
+		int max = MapSize; // i think i needed this for something before but now it's obviously redundant
+		int z = 0;
+		for(int x = 0;; ++x)
+		{
+			// if we've reached the right edge, start over on the next line
+			if(x == max)
+			{
+				x = 0;
+				++z;
+			}
+			// if we reached the bottom/end, we're done
+			if(z == max)
+				break;
+
+			// Calculate world coordinates for terrain tile vertex. Terrain vertices are defined in tile-local coordinates.
+			// add the vertex to the buffer
+			meshVertices[trnCount][u] = Ogre::Vector3((Scale * x) + DeltaX, mapptr[(MapSize * z) + x], (Scale * -z) + DeltaZ);
+
+			i += 3;
+			++u;
+		}
+
+
+		size_t size = ((MapSize*MapSize)-(MapSize*2)) * 6;
+		meshIndices[trnCount] = new unsigned long[size];
+		// i will point to the 'indices' index to insert at, x points to the vertex # to use
+		i = 0;
+		for(int x = 0;;++x)
+		{
+			// skip rightmost vertices
+			if((x+1)%MapSize == 0)
+			{
+				++x;
+			}
+
+			// make a square of 2 triangles
+			meshIndices[trnCount][i] = x;
+			meshIndices[trnCount][i+1] = x + 1;
+			meshIndices[trnCount][i+2] = x + MapSize;
+
+			meshIndices[trnCount][i+3] = x + 1;
+			meshIndices[trnCount][i+4] = x + 1 + MapSize;
+			meshIndices[trnCount][i+5] = x + MapSize;
+
+			// if we just did the final square, we're done
+			if(x+1+MapSize == (MapSize*MapSize)-1)
+				break;
+
+			i += 6;
+		}
+
+		meshVertexCount[trnCount] = trn->getSize()*trn->getSize();
+		meshIndexCount[trnCount] = size;
+
+		nverts += meshVertexCount[trnCount];
+		ntris += meshIndexCount[trnCount];
+
+		if(trnCount < pagesTotal)
+			++trnCount;
+	}
+	ntris = ntris / 3;
+
+
+	hkpSimpleMeshShape* meshStorage = new hkpSimpleMeshShape(hkConvexShapeDefaultRadius);
+	meshStorage->m_vertices.setSize(nverts);
+	meshStorage->m_triangles.setSize(ntris);
+
+	for(unsigned int i = 0; i < meshVertexCount[0]; i++){
+		hkVector4 vertex(meshVertices[0][i].x, meshVertices[0][i].y, meshVertices[0][i].z);
+		meshStorage->m_vertices[i] = vertex;
+	}
+	for(unsigned int i = 0; i < ntris; i++){
+		meshStorage->m_triangles[i].m_a = meshIndices[0][i];
+		meshStorage->m_triangles[i].m_b = meshIndices[0][i+1];
+		meshStorage->m_triangles[i].m_c = meshIndices[0][i+2];
+	}
+
+	hkpMoppCompilerInput mfr;
+	mfr.setAbsoluteFitToleranceOfAxisAlignedTriangles( hkVector4( 0.1f, 0.1f, 0.1f ) );
+
+
+	hkpMoppCode* pCode = hkpMoppUtility::buildCode( meshStorage, mfr );
+	hkpBvTreeShape* shape = new hkpMoppBvTreeShape( meshStorage, pCode );
+	pCode->removeReference();
+	meshStorage->removeReference();
+
+	delete [] meshVertices;
+	delete [] meshVertexCount;
+	delete [] meshIndices;
+	delete [] meshIndexCount;
+
+	return shape;
+}
+
+Ogre::ManualObject* BvTreeShapeDescription::createDebugEntity(const Ogre::String& strName) const
+{
+    return 0;
+}
+
+hkMassProperties BvTreeShapeDescription::calcMassProperties(float fMass) const
 {
     hkMassProperties massProp;
     return massProp;

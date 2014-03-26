@@ -26,6 +26,9 @@ public:
     Ogre::SceneNode* getSceneNode() { return m_pNode; }
     Ogre::Entity* getEntity() { return m_pEntity; }
 
+    void setPosition(const Ogre::Vector3& vecPos);
+    void setRotation(const Ogre::Quaternion& quat);
+
 private:
     hkpRigidBody* m_rb;
 

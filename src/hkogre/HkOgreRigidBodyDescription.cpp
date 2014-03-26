@@ -16,6 +16,7 @@ RigidBodyDescription::RigidBodyDescription()
     m_friction = 0.4f;
     m_restitution = 0.0f;
     m_nMotionType = MOTION_DYNAMIC;
+    m_bCreateDebugObject = false;
 }
 
 void RigidBodyDescription::to_hkCinfo(hkpRigidBodyCinfo* info) const
