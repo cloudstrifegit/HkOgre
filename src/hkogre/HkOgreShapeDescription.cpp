@@ -265,7 +265,6 @@ hkpShape* SampledHeightFieldShapeDescription::createShape() const
 
 Ogre::ManualObject* SampledHeightFieldShapeDescription::createDebugEntity(const Ogre::String& strName) const
 {
-    /*
     Ogre::SceneManager* pSceneMgr = ::Ogre::Root::getSingletonPtr()->getSceneManagerIterator().getNext();
     Ogre::ManualObject* pObj = pSceneMgr->createManualObject(strName);
 	pObj->clear();
@@ -300,8 +299,6 @@ Ogre::ManualObject* SampledHeightFieldShapeDescription::createDebugEntity(const 
 
     pObj->end();
     return pObj;
-    */
-    return 0;
 }
 
 hkMassProperties SampledHeightFieldShapeDescription::calcMassProperties(float fMass) const
